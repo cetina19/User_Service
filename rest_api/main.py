@@ -12,13 +12,13 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from typing import Any
+from typing import Any, Union
 import subprocess
 from .database import SessionLocal, database, get_db
 from .models.users import User, UserCreate, UserDelete, UserRead, UserUpdate
 from .models.token import Auth, Token, TokenData, validate_user
 from .models.responses import Responses
-from .services.users import get_user, get_user_list, delete_user, put_user, add_user
+from .services.users import get_user, get_user_email, get_user_list, delete_user, put_user, add_user
 from .services.smtp import get_email_service
 from .services.email import EmailService
 import logging
@@ -55,13 +55,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 #oauth2_scheme = OAuth2PasswordBearer(tokenUrl="getToken")
 
 
-@dataclass
+"""@dataclass
 class User:
     email: str
     password: str
-    age: int
+    age: int"""
 
-@dataclass
+"""@dataclass
 class UserDB:
     users: List[User] = field(default_factory=list)
 
@@ -75,7 +75,7 @@ class UserDB:
         return None
 
 def get_db():
-    return UserDB()
+    return UserDB()"""
 
 @app.on_event("startup")
 async def startup():
@@ -90,7 +90,7 @@ async def register_page():
     return {"message": "Get Page"}
 
 @app.post("/register", response_model=Responses)
-async def register_user(user: UserCreate, current_user: dict = Depends(validate_user), db: Session = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):#, email_service: EmailService = Depends(get_email_service)):
     try:
         #hashed_pwd = user.password #pwd_context.hash(user.password)
         existing_user = db.query(User).filter(User.email == user.email).first()
@@ -104,11 +104,11 @@ async def register_user(user: UserCreate, current_user: dict = Depends(validate_
             return Responses.registration_error(status_code=400,error=result)
 
 
-        await email_service.send_email(
+        """await email_service.send_email(
             recipient=user.email,
             subject="Welcome!",
             body=f"Hello {user.name}, thank you for registering to my server."
-        )
+        )"""
         
         return Responses.registration_success(status_code=200, user=user)
     except ValueError as ve:
@@ -131,15 +131,25 @@ async def get_users(request: Request, current_user: dict = Depends(validate_user
         #templates.TemplateResponse("users.html", {"request": request, "users": users})
     
     except Exception as ve:
-        raise Responses.error_message(400,"Get","Couldn't Get User List",str(ve),None) #.get_users_error(400,str(ve))
+        return Responses.error_message(400,"Get","Couldn't Get User List",str(ve),None) #.get_users_error(400,str(ve))
     
 
-@app.get("/users/{user_id}", response_model=UserRead)
-async def api_get_user(user_id: int, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
-    user = get_user(user_id,db)
+@app.get("/users/{user_identifier}", response_model=UserRead)
+async def api_get_user(user_identifier: Union[int, str], current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
+    if isinstance(user_identifier, int):
+        user = get_user(user_identifier,db)
+    elif isinstance(user_identifier, str):
+        user = get_user_email(user_identifier,db)
     if user is None:
         return Responses.error_message(400,"Get","Couldn't Read User","User Not Found",None) #.get_user_error(400,"User Not Found",user_id)
     return Responses.success_message(200,"Get","Got User",user.to_dict()) #.get_user_succeded(200,user.to_dict())
+
+@app.get("/users2/{user_email}", response_model=UserRead)
+async def api_get_user(user_email: str, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
+    user = get_user_email(user_email,db)
+    if user is None:
+        return Responses.error_message(400,"Get","Couldn't Read User","User Not Found",None)
+    return Responses.success_message(200,"Get","Got User",user.to_dict())
 
 @app.delete("/users/{user_id}", response_model=UserDelete)
 async def api_get_user(user_id: int, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
@@ -164,7 +174,9 @@ async def update_user_age(user_id: int, user_update: UserUpdate, current_user: d
             
             result = put_user(user,user_update,db)
             if result is not None:
-                return Responses.error_message(400,"Update","User Is Not Updated",str(result),user.to_dict())
+                if isinstance(result.orig, UniqueViolation):
+                    result = str(result.orig).split("\nDETAIL:  ")[1].split("\n")[0] if "DETAIL" in str(result.orig) else "Duplicate entry"
+                return Responses.error_message(400,"Update","User Is Not Updated",str(result),user_id)
 
                             
             info["newer_info"] = user.to_dict()
@@ -194,8 +206,8 @@ async def get_token(auth: Auth):
         return Responses.error_message(400,"Auth","Not Authenticated",str(e),None) 
 
 
-@app.post("/run-tests")
-async def run_tests():
+@app.post("/getUserTest")
+async def run_test():
     try:
         result = subprocess.run(
             ["pytest", "tests/get_user.py"], 

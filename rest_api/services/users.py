@@ -23,6 +23,9 @@ def add_user(user: UserCreate, db: Session):
 def get_user(user_id: int, db: Session):
     return db.query(User).filter(User.id == user_id).first()
 
+def get_user_email(user_email: str, db: Session):
+    return db.query(User).filter(User.email == user_email).first()
+
 def get_user_list(users):
     return [{"id": user.id, "name": user.name, "email": user.email, "age": user.age} for user in users]
 

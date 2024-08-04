@@ -36,6 +36,10 @@ class Auth(BaseModel):
 
     def get_name(self):
         return self.name
+    
+    def set(self, name, password):
+        self.name = name
+        self.password = password
 
     @validator('name', 'password')
     def validate_fields(cls, value, field):
