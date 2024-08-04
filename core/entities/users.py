@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Any
 from sqlalchemy import Column, Integer, String
-from ..database import Base
+from infrastructure.database import Base
 from sqlalchemy.orm import validates
 from passlib.context import CryptContext
 import jwt

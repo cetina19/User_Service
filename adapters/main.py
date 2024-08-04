@@ -14,19 +14,19 @@ from passlib.context import CryptContext
 
 from typing import Any, Union
 import subprocess
-from .database import SessionLocal, database, get_db
-from .models.users import User, UserCreate, UserDelete, UserRead, UserUpdate
-from .models.token import Auth, Token, TokenData, validate_user
-from .models.responses import Responses
-from .services.users import get_user, get_user_email, get_user_list, delete_user, put_user, add_user
-from .services.smtp import get_email_service
-from .services.email import EmailService
+from infrastructure.database import SessionLocal, database, get_db
+from core.entities.users import User, UserCreate, UserDelete, UserRead, UserUpdate
+from core.entities.token import Auth, Token, TokenData, validate_user
+from core.entities.responses import Responses
+from core.use_cases.users import get_user, get_user_email, get_user_list, delete_user, put_user, add_user
+from infrastructure.smtp import get_email_service
+from infrastructure.email import EmailService
 import logging
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="rest_api/static"), name="static")
-templates = Jinja2Templates(directory="rest_api/templates")
+app.mount("/static", StaticFiles(directory="adapters/static"), name="static")
+templates = Jinja2Templates(directory="adapters/templates")
 
 origins = [
     "http://localhost",
@@ -62,7 +62,7 @@ async def register_page():
     return {"message": "Get Page"}
 
 @app.post("/register", response_model=Responses)
-async def register_user(user: UserCreate, db: Session = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
+async def register_user(user: UserCreate, current_user: dict = Depends(validate_user), db: Session = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
     try:
         user.set_password(pwd_context)
         existing_user = db.query(User).filter(User.email == user.get_email()).first()

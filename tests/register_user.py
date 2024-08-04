@@ -3,9 +3,9 @@ from typing import List, Optional
 import pytest
 from fastapi.testclient import TestClient
 from pytest_bdd import scenarios, when, then
-from rest_api.main import app, get_token
-from rest_api.models.token import Auth
-from rest_api.services.users import get_user_email
+from adapters.main import app, get_token
+from core.entities.token import Auth
+from core.use_cases.users import get_user_email
 
 @dataclass
 class User:

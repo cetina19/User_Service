@@ -3,8 +3,8 @@ from typing import List, Optional
 import pytest
 from fastapi.testclient import TestClient
 from pytest_bdd import scenarios, when, then
-from rest_api.main import app, get_token
-from rest_api.models.token import Auth
+from adapters.main import app, get_token
+from core.entities.token import Auth
 
 @dataclass
 class User:

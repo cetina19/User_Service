@@ -1,10 +1,10 @@
 #from requests import Session
-from rest_api.models.responses import Responses
+from core.entities.responses import Responses
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from ..models.users import User, UserUpdate, UserCreate
+from core.entities.users import User, UserUpdate, UserCreate
 from sqlalchemy.exc import IntegrityError
-from ..database import get_db
+from infrastructure.database import get_db
 from fastapi import Depends
 from fastapi import HTTPException
 

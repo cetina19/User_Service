@@ -12,7 +12,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 database = databases.Database(DATABASE_URL)
 
-from .models.users import User  
+from core.entities.users import User  
 
 Base.metadata.create_all(bind=engine)
 
