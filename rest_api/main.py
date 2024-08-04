@@ -23,10 +23,6 @@ from .services.smtp import get_email_service
 from .services.email import EmailService
 import logging
 
-from typing import List, Optional
-from dataclasses import dataclass, field
-
-
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="rest_api/static"), name="static")
@@ -52,30 +48,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="getToken")
-
-
-"""@dataclass
-class User:
-    email: str
-    password: str
-    age: int"""
-
-"""@dataclass
-class UserDB:
-    users: List[User] = field(default_factory=list)
-
-    def add_user(self, user: User):
-        self.users.append(user)
-
-    def get_user(self, email: str) -> Optional[User]:
-        for user in self.users:
-            if user.email == email:
-                return user
-        return None
-
-def get_db():
-    return UserDB()"""
 
 @app.on_event("startup")
 async def startup():
@@ -90,10 +62,10 @@ async def register_page():
     return {"message": "Get Page"}
 
 @app.post("/register", response_model=Responses)
-async def register_user(user: UserCreate, db: Session = Depends(get_db)):#, email_service: EmailService = Depends(get_email_service)):
+async def register_user(user: UserCreate, db: Session = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
     try:
-        #hashed_pwd = user.password #pwd_context.hash(user.password)
-        existing_user = db.query(User).filter(User.email == user.email).first()
+        user.set_password(pwd_context)
+        existing_user = db.query(User).filter(User.email == user.get_email()).first()
         if existing_user:
             raise ValueError("Email already exists")
 
@@ -104,11 +76,11 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):#, emai
             return Responses.registration_error(status_code=400,error=result)
 
 
-        """await email_service.send_email(
-            recipient=user.email,
+        await email_service.send_email(
+            recipient=user.get_email(),
             subject="Welcome!",
-            body=f"Hello {user.name}, thank you for registering to my server."
-        )"""
+            body=f"Hello {user.get_name()}, thank you for registering to my server."
+        )
         
         return Responses.registration_success(status_code=200, user=user)
     except ValueError as ve:
@@ -126,7 +98,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):#, emai
 async def get_users(request: Request, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
     try:
         users = db.query(User).all()
-        user_list = get_user_list(users) #[{"id": user.id, "name": user.name, "email": user.email, "age": user.age} for user in users]
+        user_list = get_user_list(users) 
         return Responses.success_message(200,"Get","Got User List",user_list)
         #templates.TemplateResponse("users.html", {"request": request, "users": users})
     
@@ -141,15 +113,8 @@ async def api_get_user(user_identifier: Union[int, str], current_user: dict = De
     elif isinstance(user_identifier, str):
         user = get_user_email(user_identifier,db)
     if user is None:
-        return Responses.error_message(400,"Get","Couldn't Read User","User Not Found",None) #.get_user_error(400,"User Not Found",user_id)
-    return Responses.success_message(200,"Get","Got User",user.to_dict()) #.get_user_succeded(200,user.to_dict())
-
-@app.get("/users2/{user_email}", response_model=UserRead)
-async def api_get_user(user_email: str, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
-    user = get_user_email(user_email,db)
-    if user is None:
-        return Responses.error_message(400,"Get","Couldn't Read User","User Not Found",None)
-    return Responses.success_message(200,"Get","Got User",user.to_dict())
+        return Responses.error_message(400,"Get","Couldn't Read User","User Not Found",None) 
+    return Responses.success_message(200,"Get","Got User",user.to_dict()) 
 
 @app.delete("/users/{user_id}", response_model=UserDelete)
 async def api_get_user(user_id: int, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
@@ -158,10 +123,10 @@ async def api_get_user(user_id: int, current_user: dict = Depends(validate_user)
         try:
             user_response = user.to_dict()
             delete_user(user,db)
-            return Responses.success_message(200,"Deletion","User Deleted", user_response) #JSONResponse({"operation": "Success", "user": user_response})
+            return Responses.success_message(200,"Deletion","User Deleted", user_response) 
         except Exception as ve:
-            return Responses.error_message(400,"Deletion","User Is Not Deleted",str(ve),user.to_dict()) #HTTPException(status_code=400, detail=str(ve))
-    return Responses.error_message(400,"Deletion","User Is Not Deleted","User Not Found",None) #HTTPException(status_code=404, detail="User not found")
+            return Responses.error_message(400,"Deletion","User Is Not Deleted",str(ve),user.to_dict()) 
+    return Responses.error_message(400,"Deletion","User Is Not Deleted","User Not Found",None) 
 
 @app.put("/users/{user_id}", response_model=UserUpdate)
 async def update_user_age(user_id: int, user_update: UserUpdate, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
@@ -182,9 +147,7 @@ async def update_user_age(user_id: int, user_update: UserUpdate, current_user: d
             info["newer_info"] = user.to_dict()
             if info["newer_info"] == info["older_info"]:
                 return Responses.error_message(400,"Update","User Is Not Updated","Same Credentials",user.to_dict())
-            #if info["newer_info"] == info["older_info"]:
-                #return Responses.error_message(400,"Update","User Is Not Updated","Same Credentials",user.to_dict())
-                 #ValueError("User Is Not Updated: Same Credentials")
+            
             db.commit()
             db.refresh(user)
             return Responses.success_message(200, "Update","User Updated", info)
@@ -225,7 +188,43 @@ async def run_test():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/registerUserTest")
+async def run_test():
+    try:
+        result = subprocess.run(
+            ["pytest", "tests/register_user.py"], 
+            capture_output=True, 
+            text=True
+        )
+        return JSONResponse(
+            content={
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            },
+            status_code=200 if result.returncode == 0 else 400
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/bddTests")
+async def run_test():
+    try:
+        result = subprocess.run(
+            ["pytest", "tests/bdd_tests.py"], 
+            capture_output=True, 
+            text=True
+        )
+        return JSONResponse(
+            content={
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            },
+            status_code=200 if result.returncode == 0 else 400
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

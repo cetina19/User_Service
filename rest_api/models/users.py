@@ -3,9 +3,12 @@ from typing import Optional, Any
 from sqlalchemy import Column, Integer, String
 from ..database import Base
 from sqlalchemy.orm import validates
+from passlib.context import CryptContext
+import jwt
 import re
 
-
+SECRET_KEY = "admin_key"
+ALGORITHM = "HS256"
 
 class User(Base):
     __tablename__ = "users"
@@ -15,6 +18,15 @@ class User(Base):
     email = Column(String, unique=False, index=True)
     password = Column(String, unique=True, index=True)
     age = Column(Integer, index=True)
+
+    def get_name(self):
+        return self.name
+    
+    def get_email(self):
+        return self.email
+    
+    def set_password(self, password):
+        self.password = password
 
     def to_dict(self):
         return {
@@ -82,6 +94,14 @@ class UserCreate(UserRead):
     password: str
     age: int
 
+    def get_name(self):
+        return self.name
+    
+    def get_email(self):
+        return self.email
+    
+    def set_password(self, pwd_context: CryptContext):
+        self.password = pwd_context.hash(self.password)
 
 class UserUpdate(BaseModel):
     id:  Optional[int] = None
