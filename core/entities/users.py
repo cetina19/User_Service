@@ -27,6 +27,7 @@ class User(Base):
     
     def set_password(self, password):
         self.password = password
+        self.password = CryptContext.hash(self.password)
 
     def to_dict(self):
         return {
