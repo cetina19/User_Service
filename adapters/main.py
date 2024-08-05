@@ -118,7 +118,7 @@ async def api_get_user(user_identifier: Union[int, str], current_user: dict = De
 
 @app.delete("/users/{user_id}", response_model=UserDelete)
 async def api_get_user(user_id: int, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
-    user = get_user(user_id,db)
+    user = db.query(User).filter(User.id == user_id).first() #get_user(user_id,db)
     if user:
         try:
             user_response = user.to_dict()
@@ -130,7 +130,7 @@ async def api_get_user(user_id: int, current_user: dict = Depends(validate_user)
 
 @app.put("/users/{user_id}", response_model=UserUpdate)
 async def update_user_age(user_id: int, user_update: UserUpdate, current_user: dict = Depends(validate_user), db: Session = Depends(get_db)):
-    user = get_user(user_id, db) 
+    user = db.query(User).filter(User.id == user_id).first() #get_user(user_id, db) 
     if user:
         try:
             adding_id = {"id": user_id}
