@@ -9,6 +9,7 @@ import re
 
 SECRET_KEY = "admin_key"
 ALGORITHM = "HS256"
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Base):
     __tablename__ = "users"
@@ -25,9 +26,12 @@ class User(Base):
     def get_email(self):
         return self.email
     
+    def get_password(self):
+        return self.password
+
     def set_password(self, password):
         self.password = password
-        self.password = CryptContext(schemes=["bcrypt"], deprecated="auto").hash(self.password)
+        self.password = pwd_context.hash(self.password)
 
     def to_dict(self):
         return {
@@ -111,6 +115,8 @@ class UserUpdate(BaseModel):
     password: str
     age: int
 
+    def get_password(self):
+        return self.password
     class Config:
         orm_mode = True
 

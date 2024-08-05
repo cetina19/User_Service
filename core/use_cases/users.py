@@ -7,6 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from infrastructure.database import get_db
 from fastapi import Depends
 from fastapi import HTTPException
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def add_user(user: UserCreate, db: Session):
     try:
@@ -39,7 +42,7 @@ def put_user(user: User, user_update: UserUpdate, db: Session):
     try:
         if user_update.name is not None:
             user.name = user_update.name
-        if user_update.password is not None:
+        if user_update.password is not None and not pwd_context.verify(user_update.get_password(),user.get_password()):
             user.set_password(user_update.password)
         if user_update.email is not None:
             user.email = user_update.email
