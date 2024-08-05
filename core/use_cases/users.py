@@ -40,7 +40,7 @@ def put_user(user: User, user_update: UserUpdate, db: Session):
         if user_update.name is not None:
             user.name = user_update.name
         if user_update.password is not None:
-            user.password = user_update.password
+            user.set_password(user_update.password)
         if user_update.email is not None:
             user.email = user_update.email
         if user_update.age is not None:
