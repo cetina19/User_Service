@@ -2,7 +2,7 @@
 from core.entities.responses import Responses
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from core.entities.users import User, UserUpdate, UserCreate
+from core.entities.users import User, UserUpdate, UserCreate, UserFind
 from sqlalchemy.exc import IntegrityError
 from infrastructure.database import get_db
 from fastapi import Depends
@@ -24,10 +24,16 @@ def add_user(user: UserCreate, db: Session):
     return None
 
 def get_user(user_id: int, db: Session):
-    return db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        return UserFind.from_orm(user)
+    return None
 
 def get_user_email(user_email: str, db: Session):
-    return db.query(User).filter(User.email == user_email).first()
+    user = db.query(User).filter(User.email == user_email).first()
+    if user:
+        return UserFind.from_orm(user)
+    return None
 
 def get_user_list(users):
     return [{"id": user.id, "name": user.name, "email": user.email, "age": user.age} for user in users]

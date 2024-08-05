@@ -43,6 +43,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 app.include_router(router)
 
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 @pytest.fixture(scope="module")
@@ -56,7 +57,7 @@ def db_session():
     yield db
     db.close()
 
-scenarios('features/bdd_tests.feature')
+scenarios('features/bdd_delete.feature')
 
 @given(parsers.cfparse('a registered user with id "{user_id:d}"'), target_fixture="user_id")
 def create_user(db_session, user_id: int):

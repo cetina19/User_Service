@@ -8,8 +8,8 @@ from core.entities.token import Auth
 
 @dataclass
 class User:
-    email: str
     name: str
+    email: str
 
 @dataclass
 class UserDB:

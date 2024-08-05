@@ -207,11 +207,30 @@ async def run_test():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/bddTests")
+@app.post("/bddDelete")
 async def run_test():
     try:
         result = subprocess.run(
-            ["pytest", "tests/bdd_tests.py"], 
+            ["pytest", "tests/bdd_delete.py"], 
+            capture_output=True, 
+            text=True
+        )
+        return JSONResponse(
+            content={
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            },
+            status_code=200 if result.returncode == 0 else 400
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bddCreate")
+async def run_test():
+    try:
+        result = subprocess.run(
+            ["pytest", "tests/bdd_create.py"], 
             capture_output=True, 
             text=True
         )

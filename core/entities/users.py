@@ -20,6 +20,9 @@ class User(Base):
     password = Column(String, unique=True, index=True)
     age = Column(Integer, index=True)
 
+    class Config:
+        orm_mode = True
+
     def get_name(self):
         return self.name
     
@@ -89,6 +92,23 @@ class UserRead(BaseModel):
         return {
             "name": self.name,
             "password": self.password,
+            "email": self.email,
+            "age": self.age
+        }
+    
+class UserFind(BaseModel):
+    id: int
+    name: str
+    email: str
+    age: int
+
+    class Config:
+        orm_mode = True
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
             "email": self.email,
             "age": self.age
         }
