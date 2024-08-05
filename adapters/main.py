@@ -246,7 +246,43 @@ async def run_test():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/bddGet")
+async def run_test():
+    try:
+        result = subprocess.run(
+            ["pytest", "tests/bdd_get.py"], 
+            capture_output=True, 
+            text=True
+        )
+        return JSONResponse(
+            content={
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            },
+            status_code=200 if result.returncode == 0 else 400
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/bddUpdate")
+async def run_test():
+    try:
+        result = subprocess.run(
+            ["pytest", "tests/bdd_update.py"], 
+            capture_output=True, 
+            text=True
+        )
+        return JSONResponse(
+            content={
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            },
+            status_code=200 if result.returncode == 0 else 400
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 #query = users.select()
